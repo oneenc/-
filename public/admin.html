@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>공사일보 관리자</title>
+  <style>
+    body{font-family:system-ui,Apple SD Gothic Neo,Malgun Gothic,sans-serif;margin:0;background:#f6f7fb}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:#fff;border:1px solid #e7e9f0;border-radius:12px;padding:16px;margin:12px 0}
+    input{padding:10px;border:1px solid #d9dce6;border-radius:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #eef0f6;text-align:left;font-size:14px}
+    a{color:#111827;font-weight:700;text-decoration:none}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:#fff;font-weight:700;cursor:pointer}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>공사일보 관리자</h2>
+
+  <div class="card row">
+    <label>From <input type="date" id="from"></label>
+    <label>To <input type="date" id="to"></label>
+    <label>검색 <input id="q" placeholder="공사명 / 현장명 / 작성자"></label>
+    <button id="btn">조회</button>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>작성일</th>
+          <th>공사명</th>
+          <th>현장명</th>
+          <th>작성자</th>
+          <th>날씨</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const tb = document.getElementById("tb");
+
+  function todayISO(){
+    const d=new Date(); 
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  document.getElementById("to").value = todayISO();
+
+  async function load(){
+    const from = document.getElementById("from").value;
+    const to = document.getElementById("to").value;
+    const q = document.getElementById("q").value;
+
+    const u = new URL(location.origin + "/api/reports");
+    if (from) u.searchParams.set("from", from);
+    if (to) u.searchParams.set("to", to);
+    if (q) u.searchParams.set("q", q);
+
+    const res = await fetch(u.toString());
+    const rows = await res.json();
+
+    tb.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.report_date}</td>
+        <td><a href="/admin-detail.html?id=${r.id}">${escapeHtml(r.project_name)}</a></td>
+        <td>${escapeHtml(r.site_name)}</td>
+        <td>${escapeHtml(r.writer)}</td>
+        <td>${escapeHtml(r.weather || "")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function escapeHtml(s){
+    return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  document.getElementById("btn").addEventListener("click", load);
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>공사일보 상세</title>
+  <style>
+    body{font-family:system-ui,Apple SD Gothic Neo,Malgun Gothic,sans-serif;margin:0;background:#f6f7fb}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:#fff;border:1px solid #e7e9f0;border-radius:12px;padding:16px;margin:12px 0}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .k{color:#6b7280;font-size:13px;margin-bottom:4px}
+    .v{font-weight:700}
+    img{max-width:100%;border-radius:12px;border:1px solid #eef0f6}
+    .imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    @media(max-width:900px){
+      .imgs{grid-template-columns:repeat(2,1fr)}
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/admin.html">← 목록</a>
+  <h2>공사일보 상세</h2>
+
+  <div id="meta" class="card"></div>
+  <div id="text" class="card"></div>
+  <div class="card">
+    <h3>사진</h3>
+    <div id="imgs" class="imgs"></div>
+  </div>
+</div>
+
+<script>
+  const id = new URLSearchParams(location.search).get("id");
+
+  function box(k,v){
+    return `<div><div class="k">${k}</div><div class="v">${v||""}</div></div>`;
+  }
+  function esc(s){
+    return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  async function load(){
+    const res = await fetch(`/api/reports/${id}`);
+    const data = await res.json();
+    if (!res.ok) {
+      document.body.innerHTML = "오류: " + (data.error || "");
+      return;
+    }
+
+    const r = data.report;
+
+    document.getElementById("meta").innerHTML = `
+      <div class="grid">
+        ${box("작성일", esc(r.report_date))}
+        ${box("공사명", esc(r.project_name))}
+        ${box("현장명", esc(r.site_name))}
+        ${box("작성자", esc(r.writer))}
+        ${box("날씨", esc(r.weather))}
+        ${box("기온", r.temp_c ?? "")}
+        ${box("공정", esc((r.work_process||[]).join(", ")))}
+        ${box("등록시각", esc(r.created_at))}
+      </div>
+    `;
+
+    document.getElementById("text").innerHTML = `
+      <h3>작업 내용</h3><p>${esc(r.work_content).replaceAll("\n","<br>")}</p>
+      <h3>인력</h3><p>직영: ${r.manpower_direct ?? ""} / 협력: ${r.manpower_sub ?? ""}</p>
+      <h3>장비</h3><p>${esc(r.equipment_note).replaceAll("\n","<br>")}</p>
+      <h3>자재</h3><p>${esc(r.material_note).replaceAll("\n","<br>")}</p>
+      <h3>자재 이슈</h3><p>${esc(r.material_issue)}</p>
+      <h3>특이사항</h3><p>${esc(r.issues).replaceAll("\n","<br>")}</p>
+      <h3>내일 계획</h3><p>${esc(r.plan_next).replaceAll("\n","<br>")}</p>
+    `;
+
+    document.getElementById("imgs").innerHTML = (data.images || [])
+      .map(i => `<a href="${i.file_path}" target="_blank">
+        <img src="${i.file_path}" alt="${esc(i.original_name)}" />
+      </a>`).join("");
+  }
+
+  load();
+</script>
+</body>
+</html>

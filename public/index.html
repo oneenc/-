@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>공사일보 작성</title>
+  <style>
+    body{font-family:system-ui,Apple SD Gothic Neo,Malgun Gothic,sans-serif;margin:0;background:#f6f7fb}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .card{background:#fff;border:1px solid #e7e9f0;border-radius:12px;padding:16px;margin:12px 0}
+    label{display:block;font-weight:600;margin:10px 0 6px}
+    input,select,textarea{width:100%;padding:10px;border:1px solid #d9dce6;border-radius:10px;font-size:14px}
+    textarea{min-height:90px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .checks{display:flex;flex-wrap:wrap;gap:10px}
+    .checks label{font-weight:500;margin:0;display:flex;gap:6px;align-items:center}
+    button{padding:12px 14px;border:0;border-radius:10px;background:#111827;color:#fff;font-weight:700;cursor:pointer}
+    .muted{color:#6b7280;font-size:13px}
+    @media(max-width:720px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>공사일보 작성</h2>
+  <p class="muted">필수: 공사명 / 현장명 / 작성일 / 작성자</p>
+
+  <form id="f" class="card">
+    <div class="row">
+      <div>
+        <label>공사명 *</label>
+        <input name="project_name" required placeholder="예: 관악산 하늘지구 공원조성공사" />
+      </div>
+      <div>
+        <label>현장명 *</label>
+        <input name="site_name" required placeholder="예: 하늘지구 A블럭" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>작성일 *</label>
+        <input type="date" name="report_date" required />
+      </div>
+      <div>
+        <label>작성자 *</label>
+        <input name="writer" required placeholder="예: 현장소장 김OO" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>날씨</label>
+        <select name="weather">
+          <option value="">선택</option>
+          <option>맑음</option><option>흐림</option><option>우천</option><option>강우</option>
+          <option>폭염</option><option>강풍</option>
+        </select>
+      </div>
+      <div>
+        <label>기온(℃)</label>
+        <input name="temp_c" inputmode="decimal" placeholder="예: 3.5" />
+      </div>
+    </div>
+
+    <label>금일 작업 공정</label>
+    <div class="checks">
+      <label><input type="checkbox" name="work_process" value="토공">토공</label>
+      <label><input type="checkbox" name="work_process" value="식재">식재</label>
+      <label><input type="checkbox" name="work_process" value="포장">포장</label>
+      <label><input type="checkbox" name="work_process" value="시설물">시설물</label>
+      <label><input type="checkbox" name="work_process" value="배수">배수</label>
+      <label><input type="checkbox" name="work_process" value="유지관리">유지관리</label>
+      <label><input type="checkbox" name="work_process" value="기타">기타</label>
+    </div>
+
+    <label>금일 주요 작업 내용</label>
+    <textarea name="work_content"></textarea>
+
+    <div class="row">
+      <div>
+        <label>직영 인원</label>
+        <input name="manpower_direct" inputmode="numeric" placeholder="예: 5" />
+      </div>
+      <div>
+        <label>협력업체 인원</label>
+        <input name="manpower_sub" inputmode="numeric" placeholder="예: 8" />
+      </div>
+    </div>
+
+    <label>장비 내역</label>
+    <textarea name="equipment_note"></textarea>
+
+    <label>자재 반입</label>
+    <textarea name="material_note"></textarea>
+
+    <label>자재 이상 여부</label>
+    <select name="material_issue">
+      <option value="">선택</option>
+      <option>이상 없음</option>
+      <option>파손 있음</option>
+      <option>규격 불일치</option>
+    </select>
+
+    <label>특이사항(민원/설계변경/안전 등)</label>
+    <textarea name="issues"></textarea>
+
+    <label>내일 작업 계획</label>
+    <textarea name="plan_next"></textarea>
+
+    <label>현장 사진 업로드(최대 10장)</label>
+    <input type="file" name="photos" accept="image/*" multiple />
+
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+      <button type="submit">제출</button>
+      <span id="msg" class="muted"></span>
+    </div>
+  </form>
+
+  <p class="muted">관리자 페이지: <a href="/admin.html">/admin.html</a></p>
+</div>
+
+<script>
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  document.querySelector('input[name="report_date"]').value = `${yyyy}-${mm}-${dd}`;
+
+  const f = document.getElementById("f");
+  const msg = document.getElementById("msg");
+
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.textContent = "전송 중...";
+
+    const fd = new FormData(f);
+    const res = await fetch("/api/reports", { method:"POST", body: fd });
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.textContent = `오류: ${data.error || "unknown"}`;
+      return;
+    }
+    msg.textContent = `완료! (ID: ${data.id})`;
+    f.reset();
+    document.querySelector('input[name="report_date"]').value = `${yyyy}-${mm}-${dd}`;
+  });
+</script>
+</body>
+</html>
